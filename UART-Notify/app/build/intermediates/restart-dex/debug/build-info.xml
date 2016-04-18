@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<instant-run
+    abi="arm64-v8a,armeabi-v7a,armeabi"
+    api-level="22"
+    density="xhdpi"
+    format="7"
+    timestamp="7354861297592" >
+
+    <task
+        name="javac"
+        duration="1421" />
+    <task
+        name="instant-run-dex"
+        duration="0" />
+    <task
+        name="instant-run-transform"
+        duration="200" />
+    <task
+        name="verifier"
+        duration="64" />
+
+    <build timestamp="50773449207707" >
+        <artifact
+            location="/home/unknwon/AndroidStudioProjects/UART-Notify/app/build/outputs/apk/app-debug.apk"
+            type="MAIN" />
+    </build>
+
+</instant-run>

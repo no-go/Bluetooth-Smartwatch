@@ -1,0 +1,26 @@
+[
+    {
+        "outputFile": "/home/unknwon/AndroidStudioProjects/UART-Notify/app/build/intermediates/res/merged/debug/values-nokeys/values-nokeys.xml",
+        "map": [
+            {
+                "to": {
+                    "startLine": 2,
+                    "startColumn": 4,
+                    "startOffset": 55,
+                    "endColumn": 48,
+                    "endOffset": 99
+                },
+                "from": {
+                    "file": "/home/unknwon/AndroidStudioProjects/UART-Notify/app/src/main/res/values-nokeys/string.xml",
+                    "position": {
+                        "startLine": 2,
+                        "startColumn": 4,
+                        "startOffset": 55,
+                        "endColumn": 48,
+                        "endOffset": 99
+                    }
+                }
+            }
+        ]
+    }
+]
