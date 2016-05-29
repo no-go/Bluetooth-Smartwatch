@@ -1,10 +1,10 @@
 [
     {
-        "merged": "/home/unknwon/AndroidStudioProjects/UART-Notify/app/build/intermediates/res/merged/debug/layout/message_detail.xml",
-        "source": "/home/unknwon/AndroidStudioProjects/UART-Notify/app/src/main/res/layout/message_detail.xml"
+        "merged": "/home/unknwon/Dokumente/projects/DIY-Smatwatch/UART-Notify/app/build/intermediates/res/merged/debug/layout/main.xml",
+        "source": "/home/unknwon/Dokumente/projects/DIY-Smatwatch/UART-Notify/app/src/main/res/layout/main.xml"
     },
     {
-        "merged": "/home/unknwon/AndroidStudioProjects/UART-Notify/app/build/intermediates/res/merged/debug/layout/main.xml",
-        "source": "/home/unknwon/AndroidStudioProjects/UART-Notify/app/src/main/res/layout/main.xml"
+        "merged": "/home/unknwon/Dokumente/projects/DIY-Smatwatch/UART-Notify/app/build/intermediates/res/merged/debug/layout/pref_main.xml",
+        "source": "/home/unknwon/Dokumente/projects/DIY-Smatwatch/UART-Notify/app/src/main/res/layout/pref_main.xml"
     }
 ]

@@ -23,23 +23,29 @@ DEALINGS IN THE SOFTWARE.
 */
 package click.dummer.UartNotify;
 
+import android.app.Notification;
+import android.content.Context;
 import android.content.Intent;
+import android.os.Bundle;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
-import android.util.Log;
+import android.widget.RemoteViews;
+
+import java.lang.reflect.Field;
+import java.util.ArrayList;
 
 public class NotificationService extends NotificationListenerService {
-    public static final String TAG = MainActivity.class.getSimpleName();
 
     @Override
     public void onNotificationPosted(StatusBarNotification sbn) {
-        Log.d(TAG, sbn.getId() + "\t" + sbn.getNotification().tickerText + "\t" + sbn.getPackageName());
+        Notification noti = sbn.getNotification();
+
         Intent i = new  Intent("click.dummer.UartNotify.NOTIFICATION_LISTENER");
-        i.putExtra("notificationEvent", sbn.getNotification().tickerText);
-        i.putExtra("notificationApp", sbn.getPackageName());
+        i.putExtra("MSG", noti.tickerText);
         sendBroadcast(i);
     }
 
     @Override
-    public void onNotificationRemoved(StatusBarNotification sbn) {}
+    public void onNotificationRemoved(StatusBarNotification sbn) {
+    }
 }

@@ -13,7 +13,7 @@
         android:name="com.android.tools.fd.runtime.BootstrapApplication"
         android:icon="@drawable/icon"
         android:label="@string/app_name"
-        android:theme="@android:style/Theme.Holo" >
+        android:theme="@style/MyCustomTheme" >
         <activity
             android:name="click.dummer.UartNotify.MainActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
@@ -25,6 +25,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name="click.dummer.UartNotify.PreferencesActivity"
+            android:parentActivityName="click.dummer.UartNotify.MainActivity" />
 
         <service
             android:name="click.dummer.UartNotify.UartService"

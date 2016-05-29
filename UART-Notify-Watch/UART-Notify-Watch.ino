@@ -1,237 +1,255 @@
-/*
- * The MIT License (MIT)
-
-Copyright (c) 2016 Jochen Peters (JotPe, Krefeld)
-
-Permission is hereby granted, free of charge, to any person obtaining 
-a copy of this software and associated documentation files (the "Software"), 
-to deal in the Software without restriction, including without limitation 
-the rights to use, copy, modify, merge, publish, distribute, sublicense, 
-and/or sell copies of the Software, and to permit persons to whom the 
-Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included 
-in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS 
-OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
-DEALINGS IN THE SOFTWARE.
-*/
 #include <SPI.h>
 #include <SFE_MicroOLED.h>
+#include <avr/power.h>
+#include <avr/sleep.h>
 
-#define PIN_RESET  9 // Connect RST to pin 9
-#define PIN_DC     8 // Connect DC to pin 8
-#define PIN_CS    10 // Connect CS to pin 10
+#define PIN_RESET  9
+#define PIN_DC     8
+#define PIN_CS    10
 #define DC_JUMPER  0
+#define BUTTON     3
+#define MESSAGEPOS 40
 
-// SPI declaration
+// display 64x48
 MicroOLED oled(PIN_RESET, PIN_DC, PIN_CS);
 
-// not in serial event, because a message is max 
-// 20 bytes long and splitted in more then 1 serial
-// event
-String inStr        = "";
-const int buttonPin = A4;
-int buttonState     =  0;
-int newMessage      =  0;
-int delayer         =  0;
-String memoStr      = "";
-bool freshMsg       = false;
-bool isTime         = false;
-int hour;
-int minute;
+String inStr   = "";
+String memoStr = "             no transmission";
+int page       = -1;
+bool incomming = false;
+int minute     = 50;
+int hour       = 2;
+int vccVal     = 0;
 
-// save power, because sin/cos is to "expensive"
-const int xHour[] = {29,34,38,39,38,34,29,24,20,19,20,24,29};
-const int yHour[] = {21,22,26,31,36,40,41,40,36,31,26,22,21};
-const int xMin[]  = {29,30,32,33,34,35,37,38,39,40,40,41,41,42,42,42,42,42,41,41,40,40,39,38,37,35,34,33,32,30,29,28,26,25,24,22,21,20,19,18,18,17,17,16,16,16,16,16,17,17,18,18,19,20,21,23,24,25,26,28};
-const int yMin[]  = {18,18,18,19,19,20,20,21,22,23,24,26,27,28,30,31,32,34,35,36,38,39,40,41,42,42,43,43,44,44,44,44,44,43,43,42,42,41,40,39,37,36,35,34,32,31,30,28,27,26,24,23,22,21,20,20,19,19,18,18};
+const int xHour[13] = {32,40,47,49,47,40,32,23,17,15,17,24,32};
+const int yHour[13] = {6,8,14,23,32,38,40,38,31,23,14,8,6};
+const int xMin[60]  = {32,34,36,38,41,42,44,46,48,49,50,51,52,53,53,53,53,53,52,51,50,49,48,46,44,42,41,38,36,34,32,30,28,26,23,21,20,18,16,15,14,13,12,11,11,11,11,11,12,13,14,15,16,18,20,22,23,26,28,30};
+const int yMin[60]  = {2,2,2,3,4,5,6,7,9,11,12,14,17,19,21,23,25,27,29,32,34,35,37,39,40,41,42,43,44,44,44,44,44,43,42,41,40,39,37,35,33,32,29,27,25,23,21,19,17,14,12,11,9,7,6,5,4,3,2,2};
 
 int readVcc() {
-  int result; // Read 1.1V reference against AVcc 
-  ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1); 
-  delay(10); 
-  // Wait for Vref to settle
-  ADCSRA |= _BV(ADSC); 
-  // Convert 
-  while (bit_is_set(ADCSRA,ADSC));
+  int result;
+  power_adc_enable();
+  // Read 1.1V reference against AVcc
+  // set the reference to Vcc and the measurement to the internal 1.1V reference
+  #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+    ADMUX = _BV(REFS0) | _BV(MUX4) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+  #elif defined (__AVR_ATtiny24__) || defined(__AVR_ATtiny44__) || defined(__AVR_ATtiny84__)
+    ADMUX = _BV(MUX5) | _BV(MUX0);
+  #elif defined (__AVR_ATtiny25__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny85__)
+    ADMUX = _BV(MUX3) | _BV(MUX2);
+  #else
+    ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+  #endif  
+  delay(10); // Wait for Vref to settle
+  ADCSRA |= _BV(ADSC); // Start conversion
+  while (bit_is_set(ADCSRA,ADSC)); // measuring
   result = ADCL; 
   result |= ADCH<<8; 
   result = 1126400L / result;
-  // Back-calculate AVcc in mV 
-  //return (result-2700)/13; // scale: 3310 -> 48, 2710 -> 0
+  power_adc_disable();
   return (result-2700)/26; // scale: 3310 -> 24, 2710 -> 0
 }
 
-void setup() {
-  pinMode(buttonPin, INPUT);
-  digitalWrite(buttonPin, HIGH);
-  
-  Serial.begin(9600);
-  // -- the module stores it !! ----------------
-  if (false) {
-    Serial.println("+++");
-    delay(100);
-    Serial.println("ATE=0");
-    delay(100);
-    Serial.println("AT+HWMODELED=BLEUART");
-    delay(100);
-    Serial.println("AT+GAPDEVNAME=UART Notify Watch");
-    delay(100);
-    /* power level lower for better battery life
-     -40 : limit  60cm air
-     -20
-     -16 : limit 100cm throgh a person (Not save near other 2.5GHz devices!)
-     -12 ok (8h with 250ms delay in main loop)
-      -8 : limit 300cm throgh a person (Not save near other 2.5GHz devices!) 11h with 500ms delay in main loop
-      -4 , 0 , 4 // 4 is still not save next to the reciever
-    */ 
-    Serial.println("AT+BLEPOWERLEVEL=-16");
-    delay(300);
-    Serial.println("ATZ");
-    delay(100);
-  }
-    
-  oled.begin();    // Initialize the OLED
-  oled.clear(ALL); // Clear the display's internal memory
-  oled.clear(PAGE); // Clear the buffer.
-  oled.setFontType(0);
-  oled.setCursor(0, 0);
-  oled.print("   UART   ----------  Notify  ----------   Watch");
-  oled.display();
-  delay(1500);
+void wakeUpNow() {}
+
+void sleepNow() {
+  // sleep hint
   oled.clear(PAGE);
+  oled.setCursor(20, 20);
+  oled.print("tzz..");
   oled.display();
+  delay(1000);
+
+  oled.command(DISPLAYOFF);
+  power_spi_disable(); 
+  power_timer0_disable();
+
+  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+  sleep_enable();
+  attachInterrupt(1, wakeUpNow, HIGH); // INT1 PIN3
+  sleep_mode();
+       
+  // here the device is actually put to sleep!!
+  // THE PROGRAM CONTINUES FROM HERE AFTER WAKING UP
+  sleep_disable();
+  power_spi_enable(); 
+  power_timer0_enable();
+  oled.command(DISPLAYON);
+  incomming = true;
   
-  Serial.setTimeout(500);
-  Serial.readString();
+  // wakeup Icon
+  oled.clear(PAGE);
+  oled.circle(32, 23, 10);
+  oled.pixel(31, 20);
+  oled.pixel(35, 19);
+  oled.line (29, 27, 35, 27);
+  oled.display();
+  delay(800);
+  oled.rect(29, 19, 3, 3);
+  oled.rect(35, 19, 3, 3);
+  oled.pixel(35, 26);
+  oled.display();  
+  delay(800);
 }
 
-void printClock(int dx=0, int dy=0) {
-    oled.circle(29+dx, 31+dy, 13);
-    hour   = memoStr.substring(11,13).toInt();
-    if (hour>12) hour-=12;
-    minute = memoStr.substring(14,16).toInt();
-    oled.line(29+dx, 31+dy, xMin[minute]+dx, yMin[minute]+dy);
-    oled.line(29+dx, 31+dy, xHour[hour]+dx, yHour[hour]+dy);  
+void setup() {  
+  pinMode(BUTTON, INPUT);
+  digitalWrite(BUTTON, HIGH);
+  Serial.begin(9600);
+  
+  power_timer1_disable();
+  power_timer2_disable();
+  power_adc_disable();
+  power_twi_disable();
+  
+  oled.begin();
+  oled.clear(ALL); // Clear the display's internal memory logo
+  oled.display();
+  oled.scrollRight(3,3);
+  /*
+  Serial.println("+++");
+  delay(250);
+  Serial.println("ATE=0");
+  delay(250);
+  Serial.println("AT+HWMODELED=BLEUART");
+  delay(250);
+  Serial.println("AT+GAPDEVNAME=UART Notify Watch");
+  delay(250);
+  Serial.println("AT+BLEPOWERLEVEL=4");
+  delay(250);
+  Serial.println("ATZ");
+  */
+  delay(1500);
 }
 
-void loop() {
-
-  if (freshMsg == true && memoStr[0] != '#') {
-    freshMsg = false;
-    oled.clear(PAGE);
-    oled.setFontType(1);
-    oled.setCursor(0, 20);
-    oled.print("NEW: " + String(newMessage));
-    oled.display();
-    oled.setFontType(0);
-    delayer = 1;
+char umlReplace(char inChar) {
+  if (inChar == -97) {
+    inChar = 224; // ß
+  } else if (inChar == -92) {
+    inChar = 132; // ä
+  } else if (inChar == -74) {
+    inChar = 148; // ö
+  } else if (inChar == -68) {
+    inChar = 129; // ü
+  } else if (inChar == -124) {
+    inChar = 142; // Ä
+  } else if (inChar == -106) {
+    inChar = 153; // Ö
+  } else if (inChar == -100) {
+    inChar = 154; // Ü
   }
-    
-  buttonState = digitalRead(buttonPin);
-  
-  if (buttonState == LOW) {
-    int vccVal = readVcc();
-    newMessage = 0;
-    delayer    = 1;
-    
-    // show last message
-    oled.clear(PAGE);
-    oled.setCursor(0, 0);
-    oled.print(memoStr);
-    oled.rect(60, 24, 4, 24);
-    oled.rectFill(60, 48-vccVal, 4, vccVal);
-
-    if (isTime == true) printClock();
-    oled.display();
-
-    delay(1000);
-    // still down? -> get Time
-    buttonState = digitalRead(buttonPin);
-    if (buttonState == LOW) {
-      delay(200);
-      Serial.println( F("t") );
-    }
-
-    if (memoStr.length() > 60) {
-      delay(2000);
-      oled.clear(PAGE);
-      oled.setCursor(0, 0);
-      oled.print(
-        memoStr.substring(60, memoStr.length())
-      );
-      oled.display();    
-    }
-  }
-  
-  // wait 16 = 8 sec, then Disapear message
-  if (delayer > 16) {
-    delayer = 0;
-    oled.clear(PAGE);
-    // display 64x48
-    int i;
-    for (i=0; i<newMessage; i++) {
-      oled.pixel(62, i*2);
-    }
-    oled.display();
-  }
-  
-  if (delayer != 0) {
-    delayer++;
-    delay(500);
-  }
+  return inChar;  
 }
 
 void serialEvent() {
   while (Serial.available()) {
-    char inChar = (char)Serial.read();
-    
-    if (inChar == -61) {
-      continue;
-    } else if (inChar == -97) {
-      inChar = 224; // ß
-    } else if (inChar == -92) {
-      inChar = 132; // ä
-    } else if (inChar == -74) {
-      inChar = 148; // ö
-    } else if (inChar == -68) {
-      inChar = 129; // ü
-    } else if (inChar == -124) {
-      inChar = 142; // Ä
-    } else if (inChar == -106) {
-      inChar = 153; // Ö
-    } else if (inChar == -100) {
-      inChar = 154; // Ü
-    } 
-    
+    char inChar = (char)Serial.read();    
+    if (inChar == -61) continue;
     if (inChar == '\n') {
-      inStr  = "";
-      
-      if (memoStr[0] == '#') {
-        isTime = true;
-        // remove hashes
-        memoStr[0] = ' ';
-        memoStr[9] = ' ';
-        oled.clear(PAGE);
-        printClock(3, -6);
-        oled.display();
-        delayer = 1;
-      } else {
-        newMessage++;
-        freshMsg = true;
-        isTime   = false;
-        delayer = 16;
-      }
-    } else {
-      inStr += inChar;
-      memoStr = inStr;
+      // MESSAGEPOS spaces as human read buffer
+      memoStr = "                                        " + inStr;
+      inStr = "";
+      page = 0;
+      incomming=false;
+      continue;
     }
+    incomming = true;
+    inStr += umlReplace(inChar);
+  }
+}
+
+void printClock() {
+  oled.circle(32, 23, 23);
+  hour = memoStr.substring(MESSAGEPOS+1,MESSAGEPOS+3).toInt();
+  if (hour>12) hour-=12;
+  minute = memoStr.substring(MESSAGEPOS+4,MESSAGEPOS+6).toInt();
+  oled.line(32, 23, xMin[minute], yMin[minute]);
+  oled.line(32, 23, xHour[hour], yHour[hour]);
+  for (int i=0; i<12; ++i) {
+    oled.pixel(xHour[i], yHour[i]);  
+  }
+  // 12 o'clock
+  oled.pixel(30, 3);
+  oled.pixel(30, 4);
+  oled.pixel(30, 5);
+  oled.pixel(30, 6);
+  oled.pixel(32, 3);
+  oled.pixel(33, 3);
+  oled.pixel(33, 4);
+  oled.pixel(32, 5);
+  oled.pixel(33, 6);
+  oled.pixel(34, 6);
+  // 3 o'clock
+  oled.pixel(49, 21);
+  oled.pixel(50, 21);
+  oled.pixel(50, 22);
+  oled.pixel(49, 23);
+  oled.pixel(50, 24);
+  oled.pixel(49, 25);
+  oled.pixel(50, 25);
+  // 6 o'clock
+  oled.pixel(32, 41);
+  oled.pixel(31, 42);
+  oled.pixel(30, 43);
+  oled.pixel(31, 43);
+  oled.pixel(30, 44);
+  oled.pixel(31, 44);
+  oled.pixel(32, 44);
+  oled.pixel(31, 45);
+  // 9 o'clock
+  oled.pixel(14, 21);
+  oled.pixel(13, 22);
+  oled.pixel(15, 22);
+  oled.pixel(14, 23);
+  oled.pixel(15, 23);
+  oled.pixel(14, 24);
+  oled.pixel(13, 25);
+
+  oled.display();
+}
+
+void loop() {
+  delay(80);
+  if (page >= 0 && page <= memoStr.length()) {
+
+    // if "first" Char is a #, then
+    // print on first scroll iter clock
+    // for the next 30 iter
+    if (page < 30 && memoStr[MESSAGEPOS] == '#') {
+      if (page == 0) {
+        oled.clear(PAGE);
+        // Battery
+        oled.rect(60, 24, 4, 24);
+        oled.rectFill(60, 48-vccVal, 4, vccVal);
+        printClock();
+      }
+      // last iter: remove sharp
+      if (page == 29) memoStr[MESSAGEPOS] = ' ';
+    } else {
+      oled.clear(PAGE);
+      // Battery
+      oled.rect(60, 24, 4, 24);
+      oled.rectFill(60, 48-vccVal, 4, vccVal);
+      // message
+      oled.setCursor(0, 0);
+      oled.print(memoStr.substring(page));
+      oled.display();
+    }
+  }
+
+  if (page >= 0) page += 1;
+  
+  if (page > memoStr.length() && incomming==false) {
+    page = -1;
+    sleepNow();
+    vccVal = readVcc();
+    Serial.println( F("~") );
+    page = 0;
+  }
+
+  if (digitalRead(BUTTON) == LOW) {
+    vccVal = readVcc();
+    page=0;
   }
 }
 

@@ -1,43 +1,60 @@
-# Do It Yourself Smartwatch
+# DIY Smartwatch - Plan B
 
-This is a snapshot of the code, hosted by me: [Gogs](https://dummer.click:8080/unknown/)
+Diese Version ist ein total anderes Konzept. Trinket Pro und OLED Display
+wachen auf, sobald der PIN3 (Interrupt 1) auf GND geht. Eine Tilde wird
+dann an das Handy gesendet, was dann alle gesammelten Nachrichten (Buffer
+Größe ist über App Einstellungen anpassbar) der Smartwatch zusendet. Zu
+aller erst wird aber die Zeit bzw. Datum (auch über App-Einstellungen
+anpassbar) zugesandt.
 
-## Was kann meine DIY-Smartwatch?
+## Details
 
-Sobald die App eine Verbindung zur Uhr aufgebaut hat (Smartwatch leuchtet dann blau), sendet die App (Auch wenn das Handydisplay ausgeschaltet ist) die Statusmeldungen an die Smartwatch.
+Die Nachrichten scrollen durch die Uhr und können daher etwas länger als 120
+Zeichen sein. Eine analoge Uhr ist als Darstellung weggefallen. Beim drücken
+des Buttons wird ein kleines Aufwachen Symbol gezeigt.
 
-![Schaltplan](img/circuit.png)
+Durch Delays kann es passieren, dass die Smartwatch schläft, obwohl
+gerade eine Nachricht eingeht. In den Punkt weißt Plan B noch schwachstellen
+auf. Durch den wirklich massiven Schlummerbetrieb wird auf der Smartwatch
+nicht mehr angezeigt, wenn auf den Handy eine neue Nachricht eingeht. Das
+ist nicht ganz so schlimmt, da man eh auf den Knopf drückt, um die Uhrzeit
+zu sehen. Da reicht es aus, wenn man mit der Uhrzeit auch die neuen Nachrichten
+sehen kann.
 
- -  Umlaute und ß funktioniert
- -  Logo beim Starten entfernt (Aktuell nur ein Text)
- -  Batterie wird dargestellt mit Füllstand (am Display Rand)
- -  kommt neue Nachricht: "NEW: x" (x=Anzahl neuer Nachrichten)
- -  Nachricht wird bei Tastendruck 8 sec gezeigt
- -  Gerät meldet sich mit "UART Notify Watch" statt "UART oTerm"
- -  Ein paar Emoji Icons werden als ASCII dargestellt
- -  serialTimeout erhöht
- -  delay und counter in loop entfernt
- -  Umbruch `\n` markiert nicht den Anfang, sondern wieder das Ende einer Nachricht
- -  Bug bei zu langen Nachrichten entfernt
- -  braucht nur einen Taster
- -  erste Vorbereitung der App auf "UART Notify Watch" auto(re)connect
-     -  Devicelist-Auswahl wurde entfernt
-     -  Eingabe der MAC des Bluetooth Gerätes
- -  Nachricht wird nicht sofort bei Erhalt angezeigt: gut, wenn Person, die im Bus gegenüber sitzt, nicht deine SMS lesen soll
- -  Punkte mit Anzahl neuer Nachrichten ist nun am Rand
- -  Eine Nachricht mit # wird als Zeit interpretiert und eine analoge Uhr wird gezeigt siehe [Batterie Lifetime](#batterie-lifetime)
- -  Result eines Zeit-Request wird nicht mehr als "neue Nachricht" gezählt
- -  Die # Symbole werden aus der Zeit wieder entfernt
- -  Result eines Zeit-Request wird sofort als Analoge Uhr gezeigt
+## Features
 
-![Get new Messages](img/newMessages.jpg)
+- Die Batterie Anzeige ist wieder da (durch die 3,3 V aber weiterhin nur 
+  für die letzten 30 Min interessant)
+- enorm Energiesparend
+- nicht nur 1 Nachricht
+- Auto-Scrollen
+- App Einstellungen für Zeichenpuffer und Datumsformatierung
 
-## Batterie Lifetime
+## Power
 
-Die ca 59 Linien und den Kreis werden als feste Werte abgespeicht, anstatt mit Fließkommazahlen sin() und cos() alles neu zu berechnen. Berechnen kostet Zeit und Strom.
+- über 50 mA beim Starten
+- 5.5 mA im Schlummerbetrieb
+- 25 mA beim Aufwachen und Scrollen
+
+Mit einem 170mAh Akku komme ich doch auf 30h (PWR_DOWN)! Mit IDLE Modus
+wacht Smartwatch bei UART auf, braucht aber dann 7mA was ca 21h Akkulaufzeit
+wäre. 
+
+## Schaltung
+
+Im Code ist gut zu erkennen, an welchen Pins was angebracht ist. Wie gesagt,
+der Pin 3 wird via Taster auf GND getastet. TX am Trinket Pro geht übrigends
+an RXT des UART Bluefruit Moduls.
+
+## Hülle
+
+Ein Kombination aus Brillenputztuch Schlauch (mit Patex geklebt und damit auch
+das rechteckige Loch fürs Display verstärkt) und ein Uhrenlederband haben sich
+als wiederverwendbare Zwischenlösung bewährt. Man muss dann nicht so viel
+Silikon abfummeln und neu dran machen, falls mal was spinnt.
 
 ## Analoge Uhr
 
-Diese Uhr ist sehr improvisiert. Eigentlich gefällt es mir ganz gut, dass bei 14:57 der Stundenzeiger noch auf 2 Uhr steht und nicht beinahe auf 3 Uhr ;-)
-
-![Analoge Uhrzeit](img/analog.jpg)
+Ist die Uhrzeit zu anfang mit einem # Symbol und HH:mm formatiert, zeigt die
+Smartwatch nun wieder eine Analoge Uhr an. Außerdem steht 12,3,6 und 9
+auf der Uhr in sehr kleinen Zahlen.

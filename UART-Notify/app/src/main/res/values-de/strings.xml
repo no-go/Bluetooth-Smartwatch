@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="send">Senden</string>
+    <string name="preferences">Einstellungen</string>
+    <string name="disconnect">Unterbrechen</string>
+    <string name="connect">Verbinden</string>
+    <string name="notConnected">nicht verbunden</string>
+    <string name="ble_addr">MAC Adresse</string>
+    <string name="ble_addr_summary">Die Bluetooth Adresse der Smartwatch</string>
+    <string name="timeRequest">Zeit Anfrage</string>
+    <string name="timeRequest_summary">Das Zeichen, was deine Smartwatch an die App sendet</string>
+    <string name="testMessageChar">Test Char</string>
+    <string name="testMessageChar_summary">Eingabe dieses Zeichens erzeugt eine 120 Zeichen lange Testnachricht</string>
+    <string name="Quit">Ende</string>
+    <string name="Yes">Ja</string>
+    <string name="No">Nein!</string>
+    <string name="reallyQuit">Willst du die Anwendung wirklich beenden?</string>
+    <string name="messageSize">Buffer</string>
+    <string name="messageSize_summary">Größe des Nachrichtenspeichers</string>
+    <string name="dateFormat">Zeit und Datums Format</string>
+    <string name="dateFormat_summary">Schau dir Javas SimpleDateFormat() an!</string>
+</resources>

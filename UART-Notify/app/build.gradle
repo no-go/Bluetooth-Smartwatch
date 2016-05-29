@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 android {
     compileSdkVersion 18
-    buildToolsVersion "23.0.0"
+    buildToolsVersion "23.0.3"
 
     defaultConfig {
         applicationId "click.dummer.UartNotify"
@@ -20,6 +20,6 @@ android {
 }
 
 dependencies {
-    compile 'com.android.support:support-v4:23.0.0'
+//    compile 'com.android.support:'
     compile 'com.google.android.gms:play-services-appindexing:8.1.0'
 }
