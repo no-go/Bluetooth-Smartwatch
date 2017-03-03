@@ -3,24 +3,18 @@
 #define PIN_RESET 10
 #define PIN_DC     8
 
-#define CHAR_TIME_REQUEST     '~'
 #define CHAR_TIME_RESPONSE    '#' //#HH:mm:ss
-#define CHAR_NOTIFY_HINT      '%' //%[byte]
 
-#define MESSAGEPOS     50
-
-#define MEMOSTR_LIMIT 310
+#define MEMOSTR_LIMIT 170
 
 const byte batLength =  60;
-char memoStr[MEMOSTR_LIMIT] = {'\0'};
-int  memoStrPos   = MESSAGEPOS;
-int  page         = 0;
-byte COUNT        = 0;
 
 byte hours   = 10;
 byte minutes = 10;
 byte seconds = 15;
 byte tick    = 0;
+
+bool showText = false;
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
@@ -164,54 +158,37 @@ void anaClock() {
   oled->print(9);
 }
 
-inline void filler() {
-  for (int i=0; i<MESSAGEPOS; ++i) {
-    memoStr[i] = ' ';
-  }
-}
-
 void setup() {
-  //Serial.begin(9600); // HC10/nRF
-  Serial.begin(115200); // HC05/JDK-08
+  Serial.begin(115200);
   oled->begin();
-  oled->print('U'); // crazy, but saves dynamic mem
-  oled->print('A');
-  oled->print('R');
-  oled->print('T');
-  oled->print('-');
-  oled->print('S');
-  oled->print('m');
-  oled->print('a');
-  oled->print('r');
-  oled->print('t');
-  oled->print('w');
-  oled->print('a');
-  oled->print('t');
-  oled->print('c');
-  oled->print('h');
   batteryIcon();
   oled->on();
   oled->display();
   delay(3000);
   oled->clearDisplay();
-  filler();
 }
 
 void serialEvent() {
   while (Serial.available()) {
-    if (memoStrPos >= MEMOSTR_LIMIT) memoStrPos = MEMOSTR_LIMIT;
     char inChar = (char)Serial.read();
     if (inChar == -61) continue; // symbol before utf-8
     if (inChar == -62) continue; // other symbol before utf-8
-    if (inChar == '\n') {
-      oled->on();
-      memoStr[memoStrPos] = '\0';
-      page = 0;
+    if (showText == false) {
+      showText = true;
+      oled->clearDisplay();
+      oled->setCursor(0,0);
+    }
+    if (inChar == CHAR_TIME_RESPONSE) {
+      
+    }
+    
+    if (inChar == '\n' || inChar == '\r') {
+      oled->clearDisplay();
+      oled->setCursor(0,0);
+      showText = false;
       continue;
     }
-    memoStr[memoStrPos] = oled->umlReplace(inChar);
-    memoStrPos++;
-    if (memoStrPos >= MEMOSTR_LIMIT) memoStrPos = MEMOSTR_LIMIT;
+    oled->print(oled->umlReplace(inChar));
   }
 }
 
@@ -223,11 +200,10 @@ inline void ticking() {
   
   if (tick > 9) {
     tick = tick % 10;
-    oled->clear();
+    if (showText == false) oled->clear();
     if (seconds > 59) {
       minutes += seconds / 60;
       seconds  = seconds % 60;
-      Serial.println(CHAR_TIME_REQUEST); // ---------------- testing
     }
     if (minutes > 59) {
       hours  += minutes / 60;
@@ -258,49 +234,16 @@ void batteryIcon() {
 inline byte tob(char c) { return c - '0';}
 
 void loop() {
-  anaClock();
+  if(showText == false) {
+    anaClock();
+  }
   batteryIcon();
   oled->display();
   // 10ms in vcc mesurement (86+10 = in 3h+1min you lost 13min - 1sec was 70ms to slow)
   // 10ms in vcc mesurement (79+10 = in   88min you lost 90sec - 1sec was 13ms to slow)
   delay(77); // 20ms faster
   if (tick == 1) delay(7); // 7ms slower
-  
-
-  if (memoStrPos > MESSAGEPOS && page == 0) {
-
-    if (memoStr[MESSAGEPOS] == CHAR_TIME_RESPONSE) {
-      
-      // extract the time -------------------------
-      
-      memoStr[MESSAGEPOS] = ' ';
-      hours = tob(memoStr[MESSAGEPOS+1])*10 + tob(memoStr[MESSAGEPOS+2]);
-      minutes = tob(memoStr[MESSAGEPOS+4])*10 + tob(memoStr[MESSAGEPOS+5]);
-      seconds = tob(memoStr[MESSAGEPOS+7])*10 + tob(memoStr[MESSAGEPOS+8]);
-
-    } else if (memoStr[MESSAGEPOS] == CHAR_NOTIFY_HINT) {
-      // there is a new message (or a message is deleted)
-      
-      COUNT = (unsigned char) memoStr[MESSAGEPOS+1];
-      page = memoStrPos; // makes a clear and display off        
-     }
-  }
-
-  // Scrolling message through display
-  if (memoStrPos > MESSAGEPOS && page <= memoStrPos) {
-    oled->clear();
-    oled->setCursor(0, 0);
-    oled->print(&(memoStr[page]));
-  }
-
-  /// Safe power and switch display off, if message is at the end
-  if (page == memoStrPos) {
-    // "remove" old chars from buffer
-    // print ignores everyting behind \0
-    memoStr[MESSAGEPOS] = '\0';
-    memoStrPos = MESSAGEPOS;
-  }   
-  page++;
+    
   ticking();
 }
 
