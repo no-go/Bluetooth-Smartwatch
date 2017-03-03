@@ -3,6 +3,7 @@
 #define PIN_RESET 10
 #define PIN_DC     8
 
+#define CHAR_TIME_REQUEST     '~'
 #define CHAR_TIME_RESPONSE    '#' //#HH:mm:ss
 #define CHAR_NOTIFY_HINT      '%' //%[byte]
 
@@ -170,7 +171,8 @@ inline void filler() {
 }
 
 void setup() {
-  Serial.begin(9600);
+  //Serial.begin(9600); // HC10/nRF
+  Serial.begin(115200); // HC05/JDK-08
   oled->begin();
   oled->print('U'); // crazy, but saves dynamic mem
   oled->print('A');
@@ -225,6 +227,7 @@ inline void ticking() {
     if (seconds > 59) {
       minutes += seconds / 60;
       seconds  = seconds % 60;
+      Serial.println(CHAR_TIME_REQUEST); // ---------------- testing
     }
     if (minutes > 59) {
       hours  += minutes / 60;
@@ -258,7 +261,11 @@ void loop() {
   anaClock();
   batteryIcon();
   oled->display();
-  delay(86); // 10ms in vcc mesurement
+  // 10ms in vcc mesurement (86+10 = in 3h+1min you lost 13min - 1sec was 70ms to slow)
+  // 10ms in vcc mesurement (79+10 = in   88min you lost 90sec - 1sec was 13ms to slow)
+  delay(77); // 20ms faster
+  if (tick == 1) delay(7); // 7ms slower
+  
 
   if (memoStrPos > MESSAGEPOS && page == 0) {
 
