@@ -9,7 +9,7 @@
 
 #define MESSAGEPOS     50
 
-#define MEMOSTR_LIMIT 310
+#define MEMOSTR_LIMIT 168
 
 const byte batLength =  60;
 char memoStr[MEMOSTR_LIMIT] = {'\0'};
@@ -19,7 +19,7 @@ byte COUNT        = 0;
 
 byte hours   = 10;
 byte minutes = 10;
-byte seconds = 15;
+byte seconds = 40;
 byte tick    = 0;
 
 #include <Adafruit_GFX.h>
@@ -204,7 +204,6 @@ void serialEvent() {
     if (inChar == -61) continue; // symbol before utf-8
     if (inChar == -62) continue; // other symbol before utf-8
     if (inChar == '\n') {
-      oled->on();
       memoStr[memoStrPos] = '\0';
       page = 0;
       continue;
@@ -299,6 +298,7 @@ void loop() {
     // print ignores everyting behind \0
     memoStr[MESSAGEPOS] = '\0';
     memoStrPos = MESSAGEPOS;
+    page=0;
   }   
   page++;
   ticking();
