@@ -5,6 +5,7 @@
 
 #define BUTTON1    3
 #define BUTTON2    4
+#define LED_FAIL   A1
 
 const byte batLength =  60;
 
@@ -174,6 +175,8 @@ void anaClock() {
 void setup() {
   pinMode(BUTTON1, INPUT_PULLUP);
   pinMode(BUTTON2, INPUT_PULLUP);
+  pinMode(LED_FAIL, OUTPUT);
+  digitalWrite(LED_FAIL, LOW);
   Serial.begin(115200);
   oled->begin();
   batteryIcon();
@@ -516,7 +519,9 @@ void game() {
       died();
       
       oled->display();
+      digitalWrite(LED_FAIL, HIGH);
       delay(1000);
+      digitalWrite(LED_FAIL, LOW);
       tick += 10;
       
     } else {
